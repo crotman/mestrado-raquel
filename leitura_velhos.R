@@ -1,6 +1,7 @@
 
 library(tidyverse)
 library(reactable)
+library(scales)
 
 
 acerto_faixas <- tibble(
@@ -121,20 +122,34 @@ proj_mulheres <- read_csv2("dados/proj_mulher.csv") %>%
 
 tudo <- censo %>% 
     bind_rows(proj_homens) %>% 
-    bind_rows(proj_mulheres)
+    bind_rows(proj_mulheres) %>% 
+    filter(classe != "Ignorada")
 
 
 tudo_classe <- tudo %>% 
     group_by(ano, sexo, classe, fonte) %>%
     summarise(populacao = sum(populacao)) %>% 
     ungroup() %>% 
-    mutate(classe = fct_relevel(classe, "Não-idosos", "Jovens idosos", "Idosos médios", "Idosos velhos", "Ignorada"))
+    mutate(classe = fct_relevel(classe, "Não-idosos", "Jovens idosos", "Idosos médios", "Idosos velhos"))
 
 tudo_sem_sexo <- tudo_classe %>% 
+    filter(sexo == "Mulheres") %>% 
     select(-sexo, fonte) %>% 
     group_by(ano, classe) %>% 
-    summarise(populacao = sum(populacao)) %>% 
-    pivot_wider(names_from = ano, values_from = populacao)
+    summarise(populacao = sum(populacao))
+
+
+ggplot(tudo_sem_sexo) +
+    geom_area(alpha = 0.5,aes(x = ano, y = populacao, fill = classe), position = "fill")+
+    scale_y_continuous(
+        breaks = seq(0,1,0.1),
+        labels = percent, 
+        sec.axis = sec_axis(~., labels = percent, breaks = derive())
+    ) +
+    theme_minimal()
+
+
+
     
 
 
